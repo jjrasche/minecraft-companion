@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minecraft Explorer's Companion</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --surface2: #0f3460;
+    --accent: #e94560;
+    --gold: #f5a623;
+    --green: #4ecdc4;
+    --text: #eee;
+    --muted: #888;
+    --diamond: #4ee4e4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* NAV */
+  nav {
+    display: flex; gap: 4px; padding: 12px; background: var(--surface);
+    border-bottom: 2px solid var(--surface2); flex-wrap: wrap; position: sticky; top: 0; z-index: 100;
+  }
+  nav button {
+    background: var(--surface2); color: var(--text); border: none; padding: 10px 18px;
+    border-radius: 6px; cursor: pointer; font-size: 14px; transition: background 0.2s;
+  }
+  nav button:hover { background: var(--accent); }
+  nav button.active { background: var(--accent); font-weight: bold; }
+
+  .panel { display: none; padding: 20px; max-width: 1200px; margin: 0 auto; }
+  .panel.active { display: block; }
+  h2 { color: var(--gold); margin-bottom: 16px; font-size: 22px; }
+  h3 { color: var(--green); margin: 16px 0 8px; font-size: 17px; }
+  .sub { color: var(--muted); margin-bottom: 16px; font-size: 14px; }
+
+  /* DEPTH CHART */
+  .depth-chart {
+    position: relative; width: 100%; max-width: 800px;
+    background: linear-gradient(to bottom,
+      #87ceeb 0%, #87ceeb 5%, #8B7355 5%, #8B7355 15%,
+      #6B5B45 15%, #6B5B45 35%, #555 35%, #555 55%,
+      #333344 55%, #333344 75%, #222233 75%, #222233 90%,
+      #1a0a0a 90%, #1a0a0a 100%);
+    border-radius: 8px; overflow: hidden; min-height: 650px;
+  }
+  .ore-marker {
+    position: absolute; left: 0; right: 0; display: flex; align-items: center;
+    padding: 2px 12px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s;
+  }
+  .ore-marker:hover { background: rgba(255,255,255,0.15); }
+  .ore-bar { height: 8px; border-radius: 4px; margin-right: 8px; min-width: 20px; }
+  .ore-label { white-space: nowrap; text-shadow: 1px 1px 2px #000; }
+  .y-label { position: absolute; right: 8px; font-size: 11px; color: rgba(255,255,255,0.5); text-shadow: 1px 1px 2px #000; }
+
+  /* VALUE CHART */
+  .value-list { max-width: 750px; }
+  .value-item {
+    display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+    margin-bottom: 4px; background: var(--surface); border-radius: 6px; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .value-item:hover { background: var(--surface2); }
+  .value-name { width: 140px; font-weight: 600; font-size: 14px; }
+  .value-bar-bg { flex: 1; height: 20px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+  .value-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+  .value-score { width: 40px; text-align: right; font-weight: bold; font-size: 14px; }
+  .value-note { font-size: 12px; color: var(--muted); padding: 4px 12px 8px 164px; display: none; }
+  .value-item.expanded + .value-note { display: block; }
+  .stack-badge {
+    font-size: 10px; padding: 2px 6px; border-radius: 8px;
+    background: var(--surface2); color: var(--muted); white-space: nowrap;
+  }
+
+  /* RECIPE CARDS */
+  .recipe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+  .recipe-card {
+    background: var(--surface); border: 1px solid var(--surface2); border-radius: 8px;
+    padding: 16px; transition: border-color 0.2s;
+  }
+  .recipe-card:hover { border-color: var(--accent); }
+  .recipe-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .recipe-card h4 { color: var(--gold); margin: 0; }
+  .recipe-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+  .tag {
+    font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; text-transform: uppercase;
+  }
+  .tag-early { background: #2d5a27; color: #8fdf85; }
+  .tag-mid { background: #5a4a27; color: #f5c842; }
+  .tag-late { background: #5a2727; color: #f58585; }
+  .tag-always { background: #273a5a; color: #85c4f5; border: 1px solid #85c4f5; }
+  .recipe-body { display: flex; gap: 16px; align-items: flex-start; }
+  .recipe-info { flex: 1; }
+  .recipe-why { color: var(--green); font-size: 13px; margin-top: 6px; }
+
+  /* CRAFTING GRID */
+  .craft-cell {
+    width: 40px; height: 40px; background: #8b8b8b; border: 2px solid; border-radius: 2px;
+    border-color: #373737 #fff #fff #373737;
+    display: flex; align-items: center; justify-content: center;
+    image-rendering: pixelated; position: relative;
+  }
+  .craft-cell img { width: 32px; height: 32px; image-rendering: pixelated; }
+  .craft-cell.filled { background: #8b8b8b; }
+  .craft-arrow { display: flex; align-items: center; font-size: 24px; color: var(--muted); padding: 0 8px; }
+  .craft-result {
+    width: 44px; height: 44px; border-radius: 2px; display: flex; align-items: center; justify-content: center;
+    border: 2px solid; border-color: #373737 #fff #fff #373737;
+    background: #8b8b8b; image-rendering: pixelated; position: relative;
+  }
+  .craft-result img { width: 36px; height: 36px; image-rendering: pixelated; }
+  .craft-result-label {
+    position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%);
+    font-size: 10px; color: var(--gold); white-space: nowrap; font-weight: 600;
+  }
+  .craft-layout { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .craft-grid {
+    display: grid; grid-template-columns: repeat(3, 40px); grid-template-rows: repeat(3, 40px);
+    gap: 2px; flex-shrink: 0; background: #c6c6c6; padding: 4px; border-radius: 2px;
+    border: 2px solid; border-color: #fff #373737 #373737 #fff;
+  }
+
+  /* FILTER ROW */
+  .filter-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .filter-row button {
+    background: var(--surface); color: var(--text); border: 1px solid var(--surface2);
+    padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 13px;
+  }
+  .filter-row button.active { background: var(--accent); border-color: var(--accent); }
+
+  /* ALWAYS CARRY */
+  .carry-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-bottom: 24px; }
+  .carry-item {
+    background: var(--surface); border: 1px solid #273a5a; border-radius: 8px;
+    padding: 10px; text-align: center; font-size: 13px;
+  }
+  .carry-item .carry-icon {
+    width: 36px; height: 36px; border-radius: 4px; margin: 0 auto 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700;
+  }
+  .carry-item .carry-name { font-weight: 600; margin-bottom: 2px; }
+  .carry-item .carry-stack { font-size: 11px; color: var(--muted); }
+
+  /* STACKING INFO */
+  .stack-table { border-collapse: collapse; font-size: 13px; max-width: 600px; margin-top: 12px; }
+  .stack-table th { background: var(--surface2); padding: 8px 12px; text-align: left; }
+  .stack-table td { padding: 6px 12px; border-bottom: 1px solid var(--surface2); }
+  .stack-table tr:hover { background: rgba(255,255,255,0.03); }
+
+  /* PROGRESSION */
+  .prog-phase {
+    background: var(--surface); border-left: 4px solid var(--accent);
+    border-radius: 0 8px 8px 0; padding: 16px; margin-bottom: 12px;
+  }
+  .prog-phase h4 { margin-bottom: 8px; }
+  .prog-step { display: flex; align-items: flex-start; gap: 10px; padding: 4px 0; font-size: 14px; line-height: 1.5; }
+  .prog-check {
+    width: 20px; height: 20px; border: 2px solid var(--surface2); border-radius: 4px;
+    cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    margin-top: 2px; background: var(--bg);
+  }
+  .prog-check.done { background: var(--green); border-color: var(--green); color: var(--bg); }
+
+  /* KITS */
+  .kit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+  .kit-card { background: var(--surface); border-radius: 8px; padding: 16px; border: 1px solid var(--surface2); }
+  .kit-card h4 { color: var(--gold); margin-bottom: 8px; }
+  .kit-item { font-size: 13px; padding: 3px 0; }
+  .kit-item .qty { color: var(--muted); }
+
+  /* TRACKER */
+  .seed-section { background: var(--surface); border-radius: 8px; padding: 16px; margin-bottom: 20px; }
+  .seed-section input {
+    background: var(--bg); border: 1px solid var(--surface2); color: var(--text);
+    padding: 8px 12px; border-radius: 4px; font-size: 14px; width: 240px; margin-right: 8px;
+  }
+  .seed-section a { color: var(--diamond); text-decoration: none; }
+  .tracker-form {
+    display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto;
+    gap: 8px; margin-bottom: 16px; align-items: end;
+  }
+  .tracker-form label {
+    font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 4px;
+  }
+  .tracker-form input, .tracker-form select {
+    background: var(--surface); border: 1px solid var(--surface2); color: var(--text);
+    padding: 8px; border-radius: 4px; font-size: 14px;
+  }
+  .tracker-form button, .btn-accent {
+    background: var(--accent); color: white; border: none; padding: 8px 16px;
+    border-radius: 4px; cursor: pointer; height: 38px; font-size: 14px;
+  }
+  .marker-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .marker-table th { background: var(--surface2); padding: 10px; text-align: left; }
+  .marker-table td { padding: 8px 10px; border-bottom: 1px solid var(--surface2); }
+  .marker-table tr:hover { background: rgba(255,255,255,0.05); }
+  .delete-btn { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 16px; }
+  .marker-type-icon { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; }
+  #worldmap {
+    width: 100%; height: 500px; background: #111122;
+    border: 2px solid var(--surface2); border-radius: 8px; cursor: grab;
+    touch-action: none;
+  }
+  #worldmap:active { cursor: grabbing; }
+  .map-controls {
+    display: flex; gap: 8px; margin: 8px 0; align-items: center; flex-wrap: wrap;
+  }
+  .map-controls button {
+    background: var(--surface2); color: var(--text); border: none;
+    padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px;
+  }
+  .map-controls button:hover { background: var(--accent); }
+  .map-coords {
+    font-size: 12px; color: var(--muted); margin-left: auto;
+    font-family: 'Consolas', monospace;
+  }
+  .map-legend { display: flex; gap: 16px; margin-top: 8px; font-size: 12px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 4px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  @media (max-width: 600px) {
+    .tracker-form { grid-template-columns: 1fr 1fr; }
+    nav button { padding: 8px 12px; font-size: 12px; }
+    .recipe-body { flex-direction: column; }
+    .craft-layout { justify-content: center; }
+  }
+</style>
+</head>
+<body>
+
+<nav id="mainNav">
+  <button class="active" data-panel="depth">Ore Depths</button>
+  <button data-panel="value">Resource Value</button>
+  <button data-panel="recipes">Recipes</button>
+  <button data-panel="progression">Progression</button>
+  <button data-panel="kits">Loadout Kits</button>
+  <button data-panel="tracker">World Tracker</button>
+</nav>
+
+<!-- ORE DEPTHS -->
+<div id="depth" class="panel active">
+  <h2>Ore Distribution by Y-Level</h2>
+  <p class="sub">Click ores for details. Diamond generation peaks at Y=-64 but mine at Y=-59 to avoid bedrock/lava.</p>
+  <div class="depth-chart" id="depthChart"></div>
+  <p style="margin-top:12px;font-size:13px;color:var(--muted);">
+    <strong>Strip mine at Y=-59.</strong> Dig 1x2 tunnel, branch every 3 blocks. Water bucket saves you from lava.
+  </p>
+</div>
+
+<!-- RESOURCE VALUE -->
+<div id="value" class="panel">
+  <h2>Resource Value (Explorer/Miner)</h2>
+  <p class="sub">Click any row for details. Ranked for YOUR playstyle.</p>
+  <div class="value-list" id="valueList"></div>
+
+  <h3 style="margin-top:24px;">Stacking Reference</h3>
+  <p class="sub">Items that DON'T stack to 64 — these eat inventory slots.</p>
+  <table class="stack-table">
+    <thead><tr><th>Item</th><th>Stack</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Tools / Weapons / Armor</td><td><strong>1</strong></td><td>Each piece = 1 slot. Biggest inventory hog.</td></tr>
+      <tr><td>Beds</td><td><strong>1</strong></td><td>Always worth the slot though.</td></tr>
+      <tr><td>Buckets (empty/water/lava)</td><td><strong>1</strong></td><td>Only empty buckets stack to 16.</td></tr>
+      <tr><td>Ender Pearls</td><td><strong>16</strong></td><td>Teleport + Eye of Ender ingredient.</td></tr>
+      <tr><td>Eggs / Snowballs</td><td><strong>16</strong></td><td>Projectiles.</td></tr>
+      <tr><td>Signs</td><td><strong>16</strong></td><td>For labeling your chests.</td></tr>
+      <tr><td>Banners</td><td><strong>16</strong></td><td>Map markers.</td></tr>
+      <tr><td>Boats / Minecarts</td><td><strong>1</strong></td><td>Transport items.</td></tr>
+      <tr><td>Everything else</td><td><strong>64</strong></td><td>Blocks, ores, food, torches, etc.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- RECIPES -->
+<div id="recipes" class="panel">
+  <h2>Recipes</h2>
+
+  <h3 style="margin-top:0;">Always On You</h3>
+  <p class="sub">These never leave your inventory. 7 inventory slots + shield in free off-hand.</p>
+  <div class="carry-grid" id="carryGrid"></div>
+
+  <div class="filter-row" id="recipeFilters"></div>
+  <div class="recipe-grid" id="recipeGrid"></div>
+</div>
+
+<!-- PROGRESSION -->
+<div id="progression" class="panel">
+  <h2>Explorer's Critical Path</h2>
+  <p class="sub">Check off as you go. Progress saves in your browser.</p>
+  <div id="progTree"></div>
+</div>
+
+<!-- KITS -->
+<div id="kits" class="panel">
+  <h2>Inventory Loadout Kits</h2>
+  <p class="sub">Pre-planned inventory for different expeditions.</p>
+  <div class="kit-grid" id="kitGrid"></div>
+</div>
+
+<!-- TRACKER -->
+<div id="tracker" class="panel">
+  <h2>World Tracker</h2>
+  <div class="seed-section">
+    <h3 style="margin-top:0;">World Seed</h3>
+    <input type="text" id="seedInput" placeholder="Enter your seed...">
+    <button class="btn-accent" onclick="saveSeed()">Save</button>
+    <span id="seedLink" style="margin-left:12px;"></span>
+    <p style="font-size:12px;color:var(--muted);margin-top:8px;">Save your seed for a Chunkbase link to full structure/biome maps.</p>
+  </div>
+  <h3>Mark Locations</h3>
+  <div class="tracker-form">
+    <label>Name <input type="text" id="markerName" placeholder="Diamond stash #1"></label>
+    <label>X <input type="number" id="markerX" placeholder="0"></label>
+    <label>Y <input type="number" id="markerY" placeholder="-59"></label>
+    <label>Z <input type="number" id="markerZ" placeholder="0"></label>
+    <label>Type
+      <select id="markerType">
+        <option value="chest">Chest</option>
+        <option value="portal">Nether Portal</option>
+        <option value="base">Base/Shelter</option>
+        <option value="mine">Mine Entrance</option>
+        <option value="village">Village</option>
+        <option value="structure">Structure</option>
+        <option value="poi">Point of Interest</option>
+      </select>
+    </label>
+    <button onclick="addMarker()">Add</button>
+  </div>
+  <div id="worldmap-container">
+    <h3>Interactive World Map</h3>
+    <canvas id="worldmap"></canvas>
+    <div class="map-controls">
+      <button onclick="mapZoom(1.5)">Zoom +</button>
+      <button onclick="mapZoom(0.667)">Zoom -</button>
+      <button onclick="mapCenter(0,0)">Spawn</button>
+      <button onclick="mapFitMarkers()">Fit Markers</button>
+      <span class="map-coords" id="mapCoords">X: 0, Z: 0</span>
+    </div>
+    <div class="map-legend" id="mapLegend"></div>
+    <p class="sub" style="margin-top:8px;">Drag to pan. Scroll to zoom. Click markers for details.</p>
+  </div>
+  <h3>All Locations</h3>
+  <table class="marker-table">
+    <thead><tr><th>Type</th><th>Name</th><th>X</th><th>Y</th><th>Z</th><th>Nether Equiv.</th><th></th></tr></thead>
+    <tbody id="markerBody"></tbody>
+  </table>
+</div>
+
+<script>
+// ===== NAV =====
+document.getElementById('mainNav').addEventListener('click', e => {
+  if (e.target.tagName !== 'BUTTON') return;
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(e.target.dataset.panel).classList.add('active');
+  e.target.classList.add('active');
+  // Redraw map when tracker tab becomes visible
+  if (e.target.dataset.panel === 'tracker') requestAnimationFrame(drawMap);
+});
+
+// ===== ITEM SPRITES from Minecraft Wiki =====
+const WIKI = 'https://minecraft.wiki/images/Invicon_';
+const ITEM_IMG = {
+  'Plank':    'Oak_Planks', 'Planks': 'Oak_Planks',
+  'Stick':    'Stick',
+  'Cobble':   'Cobblestone',
+  'Iron':     'Iron_Ingot',
+  'Diamond':  'Diamond',
+  'Coal':     'Coal',
+  'Wool':     'White_Wool',
+  'Obsidian': 'Obsidian',
+  'Redstone': 'Redstone_Dust',
+  'Paper':    'Paper',
+  'Copper':   'Copper_Ingot',
+  'Amethyst': 'Amethyst_Shard',
+  'Gold':     'Gold_Ingot',
+  'Blaze P.': 'Blaze_Powder',
+  'E. Pearl': 'Ender_Pearl',
+  'Flint':    'Flint',
+  'Log':      'Oak_Log',
+  'Wheat':    'Wheat',
+  'Book':     'Book',
+  'Compass':  'Compass',
+  'Eye':      'Eye_of_Ender',
+  'String':   'String',
+  'Leather':  'Leather',
+  'IronBlk':  'Block_of_Iron',
+  'Potato':   'Potato',
+};
+
+// Result item sprites
+const RESULT_IMG = {
+  'Crafting Table': 'Crafting_Table',
+  'Wooden Pickaxe': 'Wooden_Pickaxe',
+  'Stone Pickaxe': 'Stone_Pickaxe',
+  'Iron Pickaxe': 'Iron_Pickaxe',
+  'Diamond Pickaxe': 'Diamond_Pickaxe',
+  'Furnace': 'Furnace',
+  'Torch': 'Torch',
+  'Bucket': 'Bucket',
+  'Bed': 'White_Bed',
+  'Chest': 'Chest',
+  'Shield': 'Shield',
+  'Nether Portal': 'Obsidian',
+  'Flint & Steel': 'Flint_and_Steel',
+  'Campfire': 'Campfire',
+  'Map': 'Map',
+  'Cartography Table': 'Cartography_Table',
+  'Enchanting Table': 'Enchanting_Table',
+  'Bread': 'Bread',
+  'Baked Potato': 'Baked_Potato',
+  'Eye of Ender': 'Eye_of_Ender',
+  'Ender Chest': 'Ender_Chest',
+  'Anvil': 'Anvil',
+  'Spyglass': 'Spyglass',
+  'Iron Armor (chest)': 'Iron_Chestplate',
+  'Sword (Iron)': 'Iron_Sword',
+  'Bow': 'Bow',
+};
+
+function itemImgUrl(shortName) {
+  const key = ITEM_IMG[shortName];
+  return key ? WIKI + key + '.png' : null;
+}
+
+function resultImgUrl(recipeName) {
+  const key = RESULT_IMG[recipeName];
+  return key ? WIKI + key + '.png' : null;
+}
+
+// ===== DATA =====
+const ORES = [
+  { name:'Coal', color:'#555', yMin:0, yMax:256, yPeak:96, note:'Everywhere. Smelt logs into charcoal instead.' },
+  { name:'Iron', color:'#d4d4d4', yMin:-64, yMax:256, yPeak:16, note:'Most important mid-game. Peak Y=16 and Y=232.' },
+  { name:'Copper', color:'#cc7744', yMin:-16, yMax:112, yPeak:48, note:'Spyglass, lightning rods. Low priority.' },
+  { name:'Gold', color:'#f5a623', yMin:-64, yMax:32, yPeak:-16, note:'Powered rails, golden apples, piglin bartering.' },
+  { name:'Lapis', color:'#3355ff', yMin:-64, yMax:64, yPeak:0, note:'Needed for enchanting. Hoard when found.' },
+  { name:'Redstone', color:'#ff3333', yMin:-64, yMax:16, yPeak:-59, note:'Automation fuel. Abundant at diamond level.' },
+  { name:'Diamond', color:'#4ee4e4', yMin:-64, yMax:16, yPeak:-59, note:'Peak generation at Y=-64, but mine at Y=-59 to avoid bedrock/lava. Air exposure reduces spawns.' },
+  { name:'Emerald', color:'#33dd55', yMin:-16, yMax:256, yPeak:236, note:'Mountains only. Villager currency. Worth more than you think.' },
+  { name:'Ancient Debris', color:'#664433', yMin:8, yMax:119, yPeak:15, note:'Nether only. Becomes netherite. Endgame diamond upgrade.' },
+];
+
+const VALUES = [
+  { name:'Water Bucket', score:10, color:'#4488ff', note:'Saves your life from lava, falls. Makes obsidian. #1 carry item.', stack:'1' },
+  { name:'Diamond', score:10, color:'#4ee4e4', note:'Tools, armor, enchanting table. Your mining reward.', stack:'64' },
+  { name:'Iron', score:9, color:'#d4d4d4', note:'Burns through fast: tools, armor, shields, buckets, hoppers, anvil.', stack:'64' },
+  { name:'Obsidian', score:9, color:'#220033', note:'Nether portals = 8x fast travel. Water on lava source blocks.', stack:'64' },
+  { name:'Netherite', score:6, color:'#443322', note:'Endgame diamond upgrade. Doesn\'t burn in lava. Nice-to-have, not required — you can beat the game without it.', stack:'64' },
+  { name:'Wood', score:8, color:'#8B6914', note:'Crafting table, sticks, charcoal, tools. Always carry a stack.', stack:'64' },
+  { name:'Food (Potato)', score:7, color:'#cc9944', note:'Trail-plant along routes. Baked potatoes = easy food forever.', stack:'64' },
+  { name:'Coal/Charcoal', score:7, color:'#555', note:'Torches (light = safety). Smelt logs for charcoal underground.', stack:'64' },
+  { name:'Redstone', score:7, color:'#ff3333', note:'Automation. Abundant at diamond level.', stack:'64' },
+  { name:'Emerald', score:6, color:'#33dd55', note:'Value depends on YOU: if you skip villagers entirely = 2/10. One trading session for Mending books + enchanted gear = 7/10. The system is powerful but 100% optional. Even minimal interaction pays off huge.', stack:'64' },
+  { name:'Lapis', score:6, color:'#3355ff', note:'Enchanting only. Hoard when found, spend when enchanting.', stack:'64' },
+  { name:'Gold', score:5, color:'#f5a623', note:'Powered rails, piglin bartering, golden apples. Situational.', stack:'64' },
+  { name:'Copper', score:3, color:'#cc7744', note:'Spyglass is nice for scouting. Otherwise mostly decorative.', stack:'64' },
+];
+
+const ALWAYS_CARRY = [
+  { name:'Water Bucket', color:'#4488ff', stack:'1 slot', sprite:'Water_Bucket' },
+  { name:'Bed', color:'#9966cc', stack:'1 slot', sprite:'White_Bed' },
+  { name:'Pickaxe', color:'#d4d4d4', stack:'1 slot', sprite:'Iron_Pickaxe' },
+  { name:'Sword', color:'#d4d4d4', stack:'1 slot', sprite:'Iron_Sword' },
+  { name:'Torches', color:'#f5a623', stack:'x64', sprite:'Torch' },
+  { name:'Food', color:'#cc9944', stack:'x64', sprite:'Cooked_Beef' },
+  { name:'Wood Logs', color:'#8B6914', stack:'x64 (= crafting table)', sprite:'Oak_Log' },
+  { name:'Shield', color:'#888', stack:'FREE (off-hand)', sprite:'Shield' },
+];
+
+// Grid: 9-element array, row-major. null = empty.
+const RECIPES = [
+  {
+    name:'Crafting Table', category:'essential', stage:'early', alwaysCarry:false,
+    grid:['Plank','Plank',null,'Plank','Plank',null,null,null,null],
+    why:'Required for 3x3 crafting. Craft from wood logs on demand.',
+    detail:'4 planks in 2x2 grid. Don\'t waste a slot carrying one — your wood logs ARE a crafting table.'
+  },
+  {
+    name:'Wooden Pickaxe', category:'essential', stage:'early', alwaysCarry:false,
+    grid:['Plank','Plank','Plank',null,'Stick',null,null,'Stick',null],
+    why:'Mines stone. Upgrade to stone immediately.',
+    detail:'Use only to mine ~10 cobblestone, then make stone pick.'
+  },
+  {
+    name:'Stone Pickaxe', category:'essential', stage:'early', alwaysCarry:false,
+    grid:['Cobble','Cobble','Cobble',null,'Stick',null,null,'Stick',null],
+    why:'Mines iron ore. Your main early pick.',
+    detail:'Can\'t mine gold, diamond, or redstone. Upgrade to iron ASAP.'
+  },
+  {
+    name:'Iron Pickaxe', category:'essential', stage:'early', alwaysCarry:true,
+    grid:['Iron','Iron','Iron',null,'Stick',null,null,'Stick',null],
+    why:'Mines EVERYTHING except ancient debris.',
+    detail:'Workhorse pick. Always carry a spare. Enchant with Fortune III when possible.'
+  },
+  {
+    name:'Diamond Pickaxe', category:'essential', stage:'mid', alwaysCarry:true,
+    grid:['Diamond','Diamond','Diamond',null,'Stick',null,null,'Stick',null],
+    why:'Only pick that mines obsidian. Most durable.',
+    detail:'Enchant: Fortune III (more drops), Efficiency IV+ (speed), Unbreaking III (durability).'
+  },
+  {
+    name:'Furnace', category:'essential', stage:'early', alwaysCarry:true,
+    grid:['Cobble','Cobble','Cobble','Cobble',null,'Cobble','Cobble','Cobble','Cobble'],
+    why:'Smelts ore, cooks food. Carry one.',
+    detail:'Fuel: coal, charcoal, wood, lava bucket (100 items!). Place-smelt-pickup anywhere.'
+  },
+  {
+    name:'Torch', category:'essential', stage:'early', alwaysCarry:true,
+    grid:[null,null,null,'Coal',null,null,'Stick',null,null],
+    why:'Light = no mob spawns. Place every 12 blocks.',
+    detail:'Makes 4 torches. Place on walls to mark your exit path. Coal or charcoal both work.'
+  },
+  {
+    name:'Bucket', category:'essential', stage:'early', alwaysCarry:true,
+    grid:[null,null,null,'Iron',null,'Iron',null,'Iron',null],
+    why:'Water bucket = most important item in the game.',
+    detail:'Right-click water/lava to pick up. Breaks falls, converts lava to obsidian, extinguishes fire.'
+  },
+  {
+    name:'Bed', category:'shelter', stage:'early', alwaysCarry:true,
+    grid:[null,null,null,'Wool','Wool','Wool','Plank','Plank','Plank'],
+    why:'Skip nights, set spawn. ALWAYS carry.',
+    detail:'3 sheep for wool (or shear them). Sleep before 3rd night or phantoms spawn.'
+  },
+  {
+    name:'Chest', category:'storage', stage:'early', alwaysCarry:false,
+    grid:['Plank','Plank','Plank','Plank',null,'Plank','Plank','Plank','Plank'],
+    why:'Roadside stashes. Drop at cave entrances + intersections.',
+    detail:'Two adjacent = double chest (54 slots). Label with signs.'
+  },
+  {
+    name:'Shield', category:'combat', stage:'early', alwaysCarry:true,
+    grid:['Plank','Iron','Plank','Plank','Plank','Plank',null,'Plank',null],
+    why:'Blocks creeper explosions, arrows. Goes in off-hand (free slot).',
+    detail:'Off-hand slot = no inventory cost. Hold right-click to raise. 100% block on frontal attacks.'
+  },
+  {
+    name:'Nether Portal', category:'exploration', stage:'mid', alwaysCarry:false,
+    grid:['Obsidian','Obsidian','Obsidian','Obsidian',null,'Obsidian','Obsidian','Obsidian','Obsidian'],
+    why:'8x fast travel. Build at key locations.',
+    detail:'4 wide x 5 tall frame (10 obsidian min). Light with flint & steel. OR bucket-cast: water on lava in place.'
+  },
+  {
+    name:'Flint & Steel', category:'essential', stage:'early', alwaysCarry:false,
+    grid:[null,null,null,'Iron',null,null,null,'Flint',null],
+    why:'Lights portals. Flint from gravel (~10% drop).',
+    detail:'Shapeless recipe. Mine gravel for flint. Fortune pick helps drop rate.'
+  },
+  {
+    name:'Campfire', category:'food', stage:'early', alwaysCarry:false,
+    grid:[null,'Stick',null,'Stick','Coal','Stick','Log','Log','Log'],
+    why:'Cooks 4 items, no fuel after placing. Trail cooking.',
+    detail:'Place at campsites. Put raw food on it, walk away, come back cooked. Also light source.'
+  },
+  {
+    name:'Map', category:'exploration', stage:'early', alwaysCarry:false,
+    grid:['Paper','Paper','Paper','Paper','Compass','Paper','Paper','Paper','Paper'],
+    why:'L0: 128x128, L1: 256, L2: 512, L3: 1024, L4: 2048 blocks.',
+    detail:'Paper from sugarcane. Compass = 4 iron + 1 redstone. Cartography table zooms in/out.'
+  },
+  {
+    name:'Cartography Table', category:'exploration', stage:'early', alwaysCarry:false,
+    grid:['Paper','Paper',null,'Plank','Plank',null,'Plank','Plank',null],
+    why:'Zoom, clone, lock maps. Share copies with family.',
+    detail:'Map + paper = zoom out. Map + empty map = copy. Map + glass pane = lock.'
+  },
+  {
+    name:'Enchanting Table', category:'progression', stage:'mid', alwaysCarry:false,
+    grid:[null,'Book',null,'Diamond','Obsidian','Diamond','Obsidian','Obsidian','Obsidian'],
+    why:'Power spike. 15 bookshelves for max enchants.',
+    detail:'Fortune III on pickaxe = 2-4x diamond yield. Worth building a small room for this.'
+  },
+  {
+    name:'Bread', category:'food', stage:'early', alwaysCarry:false,
+    grid:[null,null,null,'Wheat','Wheat','Wheat',null,null,null],
+    why:'No-kill food. Family-friendly.',
+    detail:'Wheat from seeds (break grass). 3 wheat = 1 bread. Restores 5 hunger.'
+  },
+  {
+    name:'Baked Potato', category:'food', stage:'early', alwaysCarry:false,
+    grid:[null,null,null,null,'Potato',null,null,null,null],
+    why:'Trail food. Plant along routes, bake when passing.',
+    detail:'Smelt in furnace/campfire. 5 hunger restored. Find in villages or from zombie drops.'
+  },
+  {
+    name:'Eye of Ender', category:'progression', stage:'mid', alwaysCarry:false,
+    grid:[null,null,null,'Blaze P.',null,null,'E. Pearl',null,null],
+    why:'Throw to find Stronghold. Fills End portal (need 12).',
+    detail:'Blaze powder from blaze rods (Nether fortress). Ender pearls from Endermen.'
+  },
+  {
+    name:'Ender Chest', category:'storage', stage:'late', alwaysCarry:false,
+    grid:['Obsidian','Obsidian','Obsidian','Obsidian','Eye','Obsidian','Obsidian','Obsidian','Obsidian'],
+    why:'Same contents from anywhere. Endgame logistics.',
+    detail:'+ shulker boxes = 729 stacks anywhere. Needs silk touch to pick up intact.'
+  },
+  {
+    name:'Anvil', category:'tools', stage:'mid', alwaysCarry:false,
+    grid:['IronBlk','IronBlk','IronBlk',null,'Iron',null,'Iron','Iron','Iron'],
+    why:'Combine enchantments, rename items, repair tools.',
+    detail:'31 iron total. Degrades with use. Essential for enchanted book application.'
+  },
+  {
+    name:'Spyglass', category:'exploration', stage:'early', alwaysCarry:false,
+    grid:[null,'Amethyst',null,null,'Copper',null,null,'Copper',null],
+    why:'Scout terrain from high points. Explorer\'s friend.',
+    detail:'Amethyst from geodes (underground crystal caves). Hold right-click to zoom.'
+  },
+  {
+    name:'Iron Armor (chest)', category:'combat', stage:'early', alwaysCarry:false,
+    grid:['Iron',null,'Iron','Iron','Iron','Iron','Iron','Iron','Iron'],
+    why:'Big survivability jump. Full set = 24 iron.',
+    detail:'Helmet: 5, Chest: 8, Legs: 7, Boots: 4 iron. Prioritize chestplate first.'
+  },
+  {
+    name:'Sword (Iron)', category:'combat', stage:'early', alwaysCarry:true,
+    grid:[null,'Iron',null,null,'Iron',null,null,'Stick',null],
+    why:'Essential for mobs. Always carry one.',
+    detail:'Iron sword = 6 damage. Upgrade to diamond (7) when possible.'
+  },
+  {
+    name:'Bow', category:'combat', stage:'early', alwaysCarry:false,
+    grid:[null,'Stick','String','Stick',null,'String',null,'Stick','String'],
+    why:'Ranged. Critical for ghasts, skeletons.',
+    detail:'String from spiders. Arrows: flint + stick + feather. Or kill skeletons for arrows.'
+  },
+];
+
+const PROGRESSION = [
+  { phase:'First 10 Minutes', color:'#8B6914', steps:[
+    'Punch tree, get logs (at least 10)',
+    'Craft planks > crafting table > wooden pickaxe',
+    'Mine stone > stone pickaxe + stone sword',
+    'Find or kill 3 sheep > craft bed',
+    'Dig into hillside, place door + bed. Sleep.',
+  ]},
+  { phase:'Early Game (Day 2-3)', color:'#d4d4d4', steps:[
+    'Mine down to find iron (Y=16 peak)',
+    'Smelt iron > iron pickaxe + bucket + shield',
+    'Fill bucket with water. ALWAYS carry this.',
+    'Find a village — grab potatoes, carrots, wheat',
+    'Plant potatoes along your regular paths near water',
+    'Craft torches (stack of 64+)',
+  ]},
+  { phase:'Mid Game', color:'#f5a623', steps:[
+    'Mine to Y=-59 for diamonds (need 5 min for pick + enchanting table)',
+    'Craft diamond pickaxe',
+    'Make obsidian: water bucket on lava source blocks',
+    'Build first Nether portal',
+    'Set up enchanting room (15 bookshelves)',
+    'Enchant diamond pick with Fortune III',
+    'Re-mine diamonds with Fortune III for 2-4x yield',
+    'Mark key locations with buried chests and signs',
+  ]},
+  { phase:'Nether Exploration', color:'#ff3333', steps:[
+    'Enter Nether with cobblestone, food, and backup gear',
+    'Build cobblestone shelter around portal (ghast protection)',
+    'Find Nether Fortress (blaze spawners inside)',
+    'Kill Blazes for blaze rods (need 7+)',
+    'Start nether highway to connect overworld locations',
+    'Your Nether X,Z = Overworld X,Z / 8',
+  ]},
+  { phase:'Finding the End', color:'#4ee4e4', steps:[
+    'Craft Eyes of Ender (blaze powder + ender pearls)',
+    'Throw eyes to locate Stronghold direction',
+    'Dig down to Stronghold, find End Portal room',
+    'Fill portal frames with Eyes of Ender (up to 12)',
+    'Gear up: diamond armor, bow, water bucket, food',
+    'Fight Ender Dragon (destroy end crystals first)',
+  ]},
+  { phase:'Endgame Logistics', color:'#33dd55', steps:[
+    'Explore End Cities for shulker boxes',
+    'Shulker boxes = portable chests (27 slots, pickupable)',
+    'Craft Ender Chest (obsidian + eye of ender)',
+    'Ender chest + shulker boxes = inventory solved forever',
+    'Expand nether highway network',
+    'Build auto-farms (iron farm is most impactful)',
+  ]},
+];
+
+const KITS = [
+  { name:'Mining Expedition', items:[
+    {item:'Iron/Diamond Pickaxe',qty:'2-3'},{item:'Torches',qty:'64+'},{item:'Water Bucket',qty:'1 (mandatory)'},
+    {item:'Food (baked potatoes)',qty:'32+'},{item:'Wood Logs',qty:'16'},{item:'Furnace',qty:'1'},
+    {item:'Crafting Table',qty:'1'},{item:'Sword/Shield',qty:'1 each'},{item:'Empty Chests',qty:'4'},
+    {item:'Bed',qty:'1 (reset spawn)'},
+  ]},
+  { name:'Surface Exploration', items:[
+    {item:'Bed',qty:'1'},{item:'Food',qty:'32+'},{item:'Wood Logs',qty:'32'},
+    {item:'Water Bucket',qty:'1'},{item:'Map + Compass',qty:'1 each'},{item:'Spyglass',qty:'1'},
+    {item:'Sword + Shield',qty:'1 each'},{item:'Iron Pickaxe',qty:'1'},
+    {item:'Empty Chests',qty:'2-4'},{item:'Potatoes',qty:'8+ (plant along route)'},
+  ]},
+  { name:'Nether Run', items:[
+    {item:'Cobblestone',qty:'128+'},{item:'Food',qty:'32+'},{item:'Iron/Diamond Armor',qty:'full set'},
+    {item:'Sword + Shield',qty:'1 each'},{item:'Bow + Arrows',qty:'1 + 32'},
+    {item:'Flint & Steel',qty:'1 (relight portal)'},{item:'Pickaxe',qty:'2'},
+    {item:'Gold Boots',qty:'1 (piglins won\'t attack)'},
+  ]},
+  { name:'Roadside Chest (stock)', items:[
+    {item:'Torches',qty:'16'},{item:'Food (cooked)',qty:'8'},{item:'Wood Logs',qty:'8'},
+    {item:'Coal',qty:'8'},{item:'Iron Ingots',qty:'4'},{item:'Cobblestone',qty:'16'},
+  ]},
+];
+
+const MARKER_COLORS = {
+  chest:'#f5a623', portal:'#9933ff', base:'#4ecdc4',
+  mine:'#888', village:'#33dd55', structure:'#ff6633', poi:'#4488ff',
+};
+
+// ===== RENDER DEPTH CHART =====
+function renderDepthChart() {
+  const chart = document.getElementById('depthChart');
+  const chartH = 650;
+  const yToP = y => ((256 - y) / 320) * chartH;
+
+  [-64,-59,-32,0,16,32,48,64,96,128,192,256].forEach(y => {
+    const el = document.createElement('div');
+    el.className = 'y-label';
+    el.textContent = `Y=${y}`;
+    el.style.top = yToP(y) + 'px';
+    chart.appendChild(el);
+  });
+
+  // Diamond zone highlight
+  const hl = document.createElement('div');
+  hl.style.cssText = `position:absolute;left:0;right:0;top:${yToP(-55)}px;height:${yToP(-63)-yToP(-55)}px;background:rgba(78,228,228,0.1);border-top:1px dashed rgba(78,228,228,0.4);border-bottom:1px dashed rgba(78,228,228,0.4);`;
+  chart.appendChild(hl);
+  const dl = document.createElement('div');
+  dl.style.cssText = `position:absolute;left:12px;top:${yToP(-55)-18}px;font-size:11px;color:#4ee4e4;text-shadow:1px 1px 2px #000;`;
+  dl.textContent = 'DIAMOND ZONE';
+  chart.appendChild(dl);
+
+  ORES.forEach(ore => {
+    const pk = yToP(ore.yPeak);
+    const m = document.createElement('div');
+    m.className = 'ore-marker';
+    m.style.top = pk + 'px';
+    m.title = `${ore.name}: Y=${ore.yMin} to Y=${ore.yMax}, peak Y=${ore.yPeak}\n${ore.note}`;
+    const bar = document.createElement('div');
+    bar.className = 'ore-bar';
+    bar.style.background = ore.color;
+    bar.style.width = Math.max(40, (ore.yMax - ore.yMin) / 3.2) + 'px';
+    const lbl = document.createElement('span');
+    lbl.className = 'ore-label';
+    lbl.style.color = ore.color;
+    lbl.textContent = `${ore.name} (peak Y=${ore.yPeak})`;
+    m.appendChild(bar);
+    m.appendChild(lbl);
+    chart.appendChild(m);
+  });
+}
+
+// ===== RENDER VALUES =====
+function renderValues() {
+  const list = document.getElementById('valueList');
+  VALUES.sort((a,b) => b.score - a.score).forEach(v => {
+    const item = document.createElement('div');
+    item.className = 'value-item';
+    item.onclick = () => item.classList.toggle('expanded');
+    item.innerHTML = `
+      <div class="value-name" style="color:${v.color}">${v.name}</div>
+      <div class="value-bar-bg"><div class="value-bar-fill" style="width:${v.score*10}%;background:${v.color}"></div></div>
+      <span class="stack-badge">${v.stack === '1' ? 'No stack' : 'x'+v.stack}</span>
+      <div class="value-score">${v.score}/10</div>
+    `;
+    list.appendChild(item);
+    const note = document.createElement('div');
+    note.className = 'value-note';
+    note.textContent = v.note;
+    list.appendChild(note);
+  });
+}
+
+// ===== RENDER ALWAYS-CARRY =====
+function renderCarry() {
+  const grid = document.getElementById('carryGrid');
+  ALWAYS_CARRY.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'carry-item';
+    const spriteUrl = WIKI + c.sprite + '.png';
+    el.innerHTML = `
+      <div class="carry-icon" style="background:${c.color};"><img src="${spriteUrl}" alt="${c.name}" style="width:32px;height:32px;image-rendering:pixelated;"></div>
+      <div class="carry-name">${c.name}</div>
+      <div class="carry-stack">${c.stack}</div>
+    `;
+    grid.appendChild(el);
+  });
+}
+
+// ===== RENDER RECIPES =====
+function buildCraftGrid(recipe) {
+  const wrap = document.createElement('div');
+  wrap.className = 'craft-layout';
+
+  const grid = document.createElement('div');
+  grid.className = 'craft-grid';
+  for (let i = 0; i < 9; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'craft-cell' + (recipe.grid[i] ? ' filled' : '');
+    if (recipe.grid[i]) {
+      const url = itemImgUrl(recipe.grid[i]);
+      // Full item name from wiki key, falling back to short name
+      const fullName = (ITEM_IMG[recipe.grid[i]] || recipe.grid[i]).replace(/_/g, ' ');
+      if (url) {
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = fullName;
+        cell.title = fullName;
+        cell.appendChild(img);
+      } else {
+        cell.textContent = recipe.grid[i];
+        cell.title = fullName;
+        cell.style.fontSize = '9px';
+        cell.style.color = '#fff';
+      }
+    }
+    grid.appendChild(cell);
+  }
+  wrap.appendChild(grid);
+
+  const arrow = document.createElement('div');
+  arrow.className = 'craft-arrow';
+  arrow.textContent = '\u2192';
+  wrap.appendChild(arrow);
+
+  const result = document.createElement('div');
+  result.className = 'craft-result';
+  const rUrl = resultImgUrl(recipe.name);
+  if (rUrl) {
+    const rImg = document.createElement('img');
+    rImg.src = rUrl;
+    rImg.alt = recipe.name;
+    rImg.title = recipe.name;
+    result.appendChild(rImg);
+  } else {
+    result.textContent = recipe.name.split(' ')[0];
+    result.style.fontSize = '10px';
+    result.style.color = '#f5a623';
+  }
+  const rLabel = document.createElement('div');
+  rLabel.className = 'craft-result-label';
+  rLabel.textContent = recipe.name;
+  result.appendChild(rLabel);
+  wrap.appendChild(result);
+
+  return wrap;
+}
+
+function renderRecipes() {
+  const categories = ['all', ...new Set(RECIPES.map(r => r.category))];
+  const filtersDiv = document.getElementById('recipeFilters');
+  const grid = document.getElementById('recipeGrid');
+
+  let activeFilter = 'all';
+
+  categories.forEach(cat => {
+    const btn = document.createElement('button');
+    btn.textContent = cat === 'all' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1);
+    if (cat === 'all') btn.classList.add('active');
+    btn.onclick = () => {
+      activeFilter = cat;
+      filtersDiv.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderFilteredRecipes();
+    };
+    filtersDiv.appendChild(btn);
+  });
+
+  function renderFilteredRecipes() {
+    grid.innerHTML = '';
+    const filtered = activeFilter === 'all' ? RECIPES : RECIPES.filter(r => r.category === activeFilter);
+    filtered.forEach(r => {
+      const card = document.createElement('div');
+      card.className = 'recipe-card';
+
+      const stageClass = r.stage === 'early' ? 'tag-early' : r.stage === 'mid' ? 'tag-mid' : 'tag-late';
+      const stageLabel = r.stage === 'early' ? 'Early' : r.stage === 'mid' ? 'Mid' : 'Late';
+
+      let tagsHtml = `<span class="tag ${stageClass}">${stageLabel}</span>`;
+      if (r.alwaysCarry) tagsHtml += `<span class="tag tag-always">Always Carry</span>`;
+
+      card.innerHTML = `
+        <div class="recipe-header">
+          <h4>${r.name}</h4>
+          <div class="recipe-tags">${tagsHtml}</div>
+        </div>
+      `;
+
+      const body = document.createElement('div');
+      body.className = 'recipe-body';
+      body.appendChild(buildCraftGrid(r));
+
+      const info = document.createElement('div');
+      info.className = 'recipe-info';
+      info.innerHTML = `
+        <div class="recipe-why">${r.why}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px;">${r.detail}</div>
+      `;
+      body.appendChild(info);
+      card.appendChild(body);
+      grid.appendChild(card);
+    });
+  }
+
+  renderFilteredRecipes();
+}
+
+// ===== RENDER PROGRESSION =====
+function renderProgression() {
+  const tree = document.getElementById('progTree');
+  const saved = JSON.parse(localStorage.getItem('mc-progress') || '{}');
+  PROGRESSION.forEach((phase, pi) => {
+    const div = document.createElement('div');
+    div.className = 'prog-phase';
+    div.style.borderLeftColor = phase.color;
+    div.innerHTML = `<h4 style="color:${phase.color}">${phase.phase}</h4>`;
+    phase.steps.forEach((step, si) => {
+      const key = `${pi}-${si}`;
+      const sd = document.createElement('div');
+      sd.className = 'prog-step';
+      const chk = document.createElement('div');
+      chk.className = 'prog-check' + (saved[key] ? ' done' : '');
+      chk.textContent = saved[key] ? '\u2713' : '';
+      chk.onclick = () => {
+        saved[key] = !saved[key];
+        localStorage.setItem('mc-progress', JSON.stringify(saved));
+        chk.classList.toggle('done');
+        chk.textContent = saved[key] ? '\u2713' : '';
+      };
+      const txt = document.createElement('span');
+      txt.textContent = step;
+      sd.appendChild(chk);
+      sd.appendChild(txt);
+      div.appendChild(sd);
+    });
+    tree.appendChild(div);
+  });
+}
+
+// ===== RENDER KITS =====
+function renderKits() {
+  const grid = document.getElementById('kitGrid');
+  KITS.forEach(kit => {
+    const card = document.createElement('div');
+    card.className = 'kit-card';
+    card.innerHTML = `<h4>${kit.name}</h4>` +
+      kit.items.map(i => `<div class="kit-item">${i.item} <span class="qty">x${i.qty}</span></div>`).join('');
+    grid.appendChild(card);
+  });
+}
+
+// ===== TRACKER =====
+let markers = JSON.parse(localStorage.getItem('mc-markers') || '[]');
+
+function addMarker() {
+  const name = document.getElementById('markerName').value.trim();
+  const x = parseInt(document.getElementById('markerX').value);
+  const y = parseInt(document.getElementById('markerY').value) || 64;
+  const z = parseInt(document.getElementById('markerZ').value);
+  const type = document.getElementById('markerType').value;
+  if (!name || isNaN(x) || isNaN(z)) return alert('Need name, X, and Z');
+  markers.push({ name, x, y, z, type, id: Date.now() });
+  localStorage.setItem('mc-markers', JSON.stringify(markers));
+  document.getElementById('markerName').value = '';
+  document.getElementById('markerX').value = '';
+  document.getElementById('markerY').value = '';
+  document.getElementById('markerZ').value = '';
+  renderMarkers();
+}
+
+function deleteMarker(id) {
+  markers = markers.filter(m => m.id !== id);
+  localStorage.setItem('mc-markers', JSON.stringify(markers));
+  renderMarkers();
+}
+
+function renderMarkers() {
+  const body = document.getElementById('markerBody');
+  body.innerHTML = '';
+  markers.forEach(m => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td><span class="marker-type-icon" style="background:${MARKER_COLORS[m.type]}"></span>${m.type}</td>
+      <td>${m.name}</td><td>${m.x}</td><td>${m.y}</td><td>${m.z}</td>
+      <td style="color:var(--muted)">${Math.round(m.x/8)}, ${Math.round(m.z/8)}</td>
+      <td><button class="delete-btn" onclick="deleteMarker(${m.id})">x</button></td>
+    `;
+    body.appendChild(row);
+  });
+  drawMap();
+  renderLegend();
+}
+
+function renderLegend() {
+  const legend = document.getElementById('mapLegend');
+  legend.innerHTML = '';
+  Object.entries(MARKER_COLORS).forEach(([t,c]) => {
+    const el = document.createElement('div');
+    el.className = 'legend-item';
+    el.innerHTML = `<div class="legend-dot" style="background:${c}"></div>${t}`;
+    legend.appendChild(el);
+  });
+}
+
+// ===== INTERACTIVE WORLD MAP =====
+// Tile metadata: each tile is 823x448px, captured at zoom=0.5
+// At zoom=0.5: tile covers 3072 blocks X, 1024 blocks Z
+// At zoom=0.5: X axis shows -1536 to +1536 = 3072 blocks across 823px
+// OpenLayers uses uniform scale: K = 3072/823 = 3.731 blocks/pixel
+// Z = 448 * 3.731 = 1671 blocks (NOT 1024 — that was the bug)
+const TILE_W_BLOCKS = 3072;
+const TILE_H_BLOCKS = 1671;
+const TILE_W_PX = 823;
+const TILE_H_PX = 448;
+
+// Map viewport state
+let mapViewX = 0;   // world X at center of viewport
+let mapViewZ = 0;   // world Z at center of viewport
+let mapScale = 0.15; // pixels per block (adjustable via zoom)
+let mapDragging = false;
+let mapDragStartX = 0, mapDragStartZ = 0, mapDragMouseX = 0, mapDragMouseZ = 0;
+let tileImages = {}; // loaded Image objects keyed by tile name
+let tilesLoaded = false;
+let hoveredMarker = null;
+
+// IndexedDB for tile storage
+function openTileDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('mc-world-tiles', 1);
+    req.onupgradeneeded = e => { e.target.result.createObjectStore('tiles', { keyPath: 'name' }); };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = e => reject(e.target.error);
+  });
+}
+
+async function storeTile(name, cx, cz, dataUrl) {
+  const db = await openTileDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('tiles', 'readwrite');
+    tx.objectStore('tiles').put({ name, cx, cz, dataUrl });
+    tx.oncomplete = resolve;
+    tx.onerror = e => reject(e.target.error);
+  });
+}
+
+async function loadAllTiles() {
+  const db = await openTileDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('tiles', 'readonly');
+    const req = tx.objectStore('tiles').getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = e => reject(e.target.error);
+  });
+}
+
+async function initTiles() {
+  // Check if SEED_TILES script loaded with fresh data
+  if (typeof SEED_TILES !== 'undefined') {
+    // Always update from script (newer data with structures)
+    for (const [name, tile] of Object.entries(SEED_TILES)) {
+      await storeTile(name, tile.cx, tile.cz, tile.data);
+    }
+  }
+
+  // Load all tiles from IndexedDB
+  let tiles = await loadAllTiles();
+
+  // Load tile images
+  for (const tile of tiles) {
+    const img = new Image();
+    img.src = tile.dataUrl;
+    await new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
+    tileImages[tile.name] = { img, cx: tile.cx, cz: tile.cz };
+  }
+
+  tilesLoaded = true;
+  drawMap();
+}
+
+function drawMap() {
+  const canvas = document.getElementById('worldmap');
+  if (!canvas) return;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = 500;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  // Clear
+  ctx.fillStyle = '#111122';
+  ctx.fillRect(0, 0, W, H);
+
+  // Draw tiles
+  if (tilesLoaded) {
+    for (const [name, tile] of Object.entries(tileImages)) {
+      // Tile covers: cx ± TILE_W_BLOCKS/2 in X, cz ± TILE_H_BLOCKS/2 in Z
+      const tileLeftWorld = tile.cx - TILE_W_BLOCKS / 2;
+      const tileTopWorld = tile.cz - TILE_H_BLOCKS / 2;
+
+      // Convert world coords to screen coords
+      const screenX = (tileLeftWorld - mapViewX) * mapScale + W / 2;
+      const screenZ = (tileTopWorld - mapViewZ) * mapScale + H / 2;
+      const screenW = TILE_W_BLOCKS * mapScale;
+      const screenH = TILE_H_BLOCKS * mapScale;
+
+      // Only draw if visible
+      if (screenX + screenW > 0 && screenX < W && screenZ + screenH > 0 && screenZ < H) {
+        ctx.imageSmoothingEnabled = mapScale < 0.5;
+        ctx.drawImage(tile.img, screenX, screenZ, screenW, screenH);
+      }
+    }
+  }
+
+  // Draw grid lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  const gridStep = mapScale > 0.3 ? 256 : mapScale > 0.1 ? 512 : 1024;
+  const worldLeft = mapViewX - W / (2 * mapScale);
+  const worldRight = mapViewX + W / (2 * mapScale);
+  const worldTop = mapViewZ - H / (2 * mapScale);
+  const worldBottom = mapViewZ + H / (2 * mapScale);
+
+  for (let wx = Math.floor(worldLeft / gridStep) * gridStep; wx <= worldRight; wx += gridStep) {
+    const sx = (wx - mapViewX) * mapScale + W / 2;
+    ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, H); ctx.stroke();
+  }
+  for (let wz = Math.floor(worldTop / gridStep) * gridStep; wz <= worldBottom; wz += gridStep) {
+    const sz = (wz - mapViewZ) * mapScale + H / 2;
+    ctx.beginPath(); ctx.moveTo(0, sz); ctx.lineTo(W, sz); ctx.stroke();
+  }
+
+  // Draw spawn crosshair
+  const spawnSX = (0 - mapViewX) * mapScale + W / 2;
+  const spawnSZ = (0 - mapViewZ) * mapScale + H / 2;
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(spawnSX - 10, spawnSZ); ctx.lineTo(spawnSX + 10, spawnSZ); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(spawnSX, spawnSZ - 10); ctx.lineTo(spawnSX, spawnSZ + 10); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Draw markers
+  markers.forEach(m => {
+    const sx = (m.x - mapViewX) * mapScale + W / 2;
+    const sz = (m.z - mapViewZ) * mapScale + H / 2;
+    if (sx < -20 || sx > W + 20 || sz < -20 || sz > H + 20) return;
+
+    const r = Math.max(5, Math.min(12, 8 * mapScale));
+    const color = MARKER_COLORS[m.type] || '#fff';
+    const isHovered = hoveredMarker && hoveredMarker.id === m.id;
+
+    // Outer ring
+    ctx.beginPath();
+    ctx.arc(sx, sz, r + 2, 0, Math.PI * 2);
+    ctx.fillStyle = isHovered ? '#fff' : 'rgba(0,0,0,0.6)';
+    ctx.fill();
+
+    // Inner dot
+    ctx.beginPath();
+    ctx.arc(sx, sz, r, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    // Label (always show if zoomed in enough, or if hovered)
+    if (mapScale > 0.08 || isHovered) {
+      ctx.font = `${isHovered ? 'bold ' : ''}11px "Segoe UI", sans-serif`;
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.fillText(m.name, sx, sz - r - 6);
+      if (isHovered) {
+        ctx.font = '10px "Consolas", monospace';
+        ctx.fillStyle = '#aaa';
+        ctx.fillText(`X:${m.x} Y:${m.y} Z:${m.z}`, sx, sz + r + 14);
+      }
+    }
+  });
+
+  // Scale bar
+  const scaleBlocks = mapScale > 0.3 ? 256 : mapScale > 0.1 ? 512 : 1024;
+  const scalePx = scaleBlocks * mapScale;
+  ctx.strokeStyle = '#888';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(10, H - 20); ctx.lineTo(10 + scalePx, H - 20); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(10, H - 25); ctx.lineTo(10, H - 15); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(10 + scalePx, H - 25); ctx.lineTo(10 + scalePx, H - 15); ctx.stroke();
+  ctx.font = '11px "Segoe UI", sans-serif';
+  ctx.fillStyle = '#888';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${scaleBlocks} blocks`, 10 + scalePx / 2, H - 8);
+}
+
+// Map interaction handlers
+function setupMapInteraction() {
+  const canvas = document.getElementById('worldmap');
+  if (!canvas) return;
+
+  canvas.addEventListener('mousedown', e => {
+    mapDragging = true;
+    mapDragMouseX = e.clientX;
+    mapDragMouseZ = e.clientY;
+    mapDragStartX = mapViewX;
+    mapDragStartZ = mapViewZ;
+  });
+
+  window.addEventListener('mousemove', e => {
+    const canvas = document.getElementById('worldmap');
+    if (!canvas) return;
+
+    if (mapDragging) {
+      const dx = e.clientX - mapDragMouseX;
+      const dz = e.clientY - mapDragMouseZ;
+      mapViewX = mapDragStartX - dx / mapScale;
+      mapViewZ = mapDragStartZ - dz / mapScale;
+      drawMap();
+    }
+
+    // Hit-test markers for hover
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const mz = e.clientY - rect.top;
+    const W = canvas.width, H = canvas.height;
+
+    let found = null;
+    for (const m of markers) {
+      const sx = (m.x - mapViewX) * mapScale + W / 2;
+      const sz = (m.z - mapViewZ) * mapScale + H / 2;
+      if (Math.abs(mx - sx) < 12 && Math.abs(mz - sz) < 12) { found = m; break; }
+    }
+    if (found !== hoveredMarker) { hoveredMarker = found; drawMap(); }
+
+    // Update coordinate display
+    const worldX = Math.round((mx - W / 2) / mapScale + mapViewX);
+    const worldZ = Math.round((mz - H / 2) / mapScale + mapViewZ);
+    const coordsEl = document.getElementById('mapCoords');
+    if (coordsEl) coordsEl.textContent = `X: ${worldX}, Z: ${worldZ}`;
+  });
+
+  window.addEventListener('mouseup', () => { mapDragging = false; });
+
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.25 : 0.8;
+    mapScale = Math.max(0.01, Math.min(2, mapScale * factor));
+    drawMap();
+  }, { passive: false });
+
+  // Touch support
+  let touchStartDist = 0, touchStartScale = 0;
+  canvas.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) {
+      mapDragging = true;
+      mapDragMouseX = e.touches[0].clientX;
+      mapDragMouseZ = e.touches[0].clientY;
+      mapDragStartX = mapViewX;
+      mapDragStartZ = mapViewZ;
+    } else if (e.touches.length === 2) {
+      touchStartDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      touchStartScale = mapScale;
+    }
+  });
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (e.touches.length === 1 && mapDragging) {
+      const dx = e.touches[0].clientX - mapDragMouseX;
+      const dz = e.touches[0].clientY - mapDragMouseZ;
+      mapViewX = mapDragStartX - dx / mapScale;
+      mapViewZ = mapDragStartZ - dz / mapScale;
+      drawMap();
+    } else if (e.touches.length === 2) {
+      const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      mapScale = Math.max(0.01, Math.min(2, touchStartScale * (dist / touchStartDist)));
+      drawMap();
+    }
+  }, { passive: false });
+  canvas.addEventListener('touchend', () => { mapDragging = false; });
+
+  // Resize handler
+  window.addEventListener('resize', () => drawMap());
+}
+
+function mapZoom(factor) {
+  mapScale = Math.max(0.01, Math.min(2, mapScale * factor));
+  drawMap();
+}
+
+function mapCenter(x, z) {
+  mapViewX = x; mapViewZ = z;
+  drawMap();
+}
+
+function mapFitMarkers() {
+  if (!markers.length) { mapCenter(0, 0); return; }
+  const xs = markers.map(m => m.x), zs = markers.map(m => m.z);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minZ = Math.min(...zs), maxZ = Math.max(...zs);
+  mapViewX = (minX + maxX) / 2;
+  mapViewZ = (minZ + maxZ) / 2;
+  const canvas = document.getElementById('worldmap');
+  const rangeX = (maxX - minX + 200);
+  const rangeZ = (maxZ - minZ + 200);
+  mapScale = Math.min(canvas.width / rangeX, canvas.height / rangeZ, 1);
+  mapScale = Math.max(0.01, mapScale);
+  drawMap();
+}
+
+function saveSeed() {
+  const seed = document.getElementById('seedInput').value.trim();
+  if (!seed) return;
+  localStorage.setItem('mc-seed', seed);
+  updateSeedLink();
+}
+
+function updateSeedLink() {
+  const seed = localStorage.getItem('mc-seed');
+  const link = document.getElementById('seedLink');
+  if (seed) {
+    document.getElementById('seedInput').value = seed;
+    link.innerHTML = `<a href="https://www.chunkbase.com/apps/seed-map#${seed}" target="_blank">Open in Chunkbase \u2192</a>`;
+  }
+}
+
+// ===== INIT =====
+renderDepthChart();
+renderValues();
+renderCarry();
+renderRecipes();
+renderProgression();
+renderKits();
+renderMarkers();
+updateSeedLink();
+setupMapInteraction();
+
+// Load tile data: try external file first, then IndexedDB
+function loadTileScript() {
+  return new Promise(resolve => {
+    const s = document.createElement('script');
+    s.src = 'mc-tiles/tiles.js';
+    s.onload = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.head.appendChild(s);
+  });
+}
+
+(async () => {
+  await loadTileScript();
+  await initTiles();
+})();
+</script>
+</body>
+</html>
