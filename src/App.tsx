@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { AuxiFlow } from 'auxi/react'
+import { AuxiFlow } from '@factoredui/react'
 import { TabNav, type TabId } from './components/TabNav'
 import { OreDepths } from './components/OreDepths'
 import { ResourceValue } from './components/ResourceValue'

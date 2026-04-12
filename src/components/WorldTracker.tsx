@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { AuxiPage } from 'auxi/react'
+import { AuxiPage } from '@factoredui/react'
 
 export function WorldTracker(): ReactNode {
   return (
