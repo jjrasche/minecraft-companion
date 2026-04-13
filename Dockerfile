@@ -1,7 +1,7 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json .npmrc ./
-RUN npm ci
+RUN npm ci && npm install @rolldown/binding-linux-arm64-musl@1.0.0-rc.15 --no-save
 COPY . .
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
