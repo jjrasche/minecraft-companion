@@ -1,0 +1,79 @@
+.chart {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  background: linear-gradient(
+    to bottom,
+    #87ceeb 0%,
+    #87ceeb 5%,
+    #8b7355 5%,
+    #8b7355 15%,
+    #6b5b45 15%,
+    #6b5b45 35%,
+    #555 35%,
+    #555 55%,
+    #333344 55%,
+    #333344 75%,
+    #222233 75%,
+    #222233 90%,
+    #1a0a0a 90%,
+    #1a0a0a 100%
+  );
+  border-radius: 8px;
+  overflow: hidden;
+  min-height: 650px;
+}
+
+.oreMarker {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  padding: 2px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.oreMarker:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.oreBar {
+  height: 8px;
+  border-radius: 4px;
+  margin-right: 8px;
+  min-width: 20px;
+}
+
+.oreLabel {
+  white-space: nowrap;
+  text-shadow: 1px 1px 2px #000;
+}
+
+.yLabel {
+  position: absolute;
+  right: 8px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  text-shadow: 1px 1px 2px #000;
+}
+
+.diamondZone {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: rgba(78, 228, 228, 0.1);
+  border-top: 1px dashed rgba(78, 228, 228, 0.4);
+  border-bottom: 1px dashed rgba(78, 228, 228, 0.4);
+}
+
+.diamondZoneLabel {
+  position: absolute;
+  left: 12px;
+  font-size: 11px;
+  color: #4ee4e4;
+  text-shadow: 1px 1px 2px #000;
+}
