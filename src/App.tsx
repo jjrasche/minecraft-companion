@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { AuxiFlow } from '@factoredui/react'
+import { Flow } from '@factoredui/react'
 import { TabNav, type TabId } from './components/TabNav'
 import { OreDepths } from './components/OreDepths'
 import { ResourceValue } from './components/ResourceValue'
@@ -23,10 +23,10 @@ function App(): ReactNode {
   const ActivePage = PAGE_MAP[activeTab]
 
   return (
-    <AuxiFlow name="minecraft-companion">
+    <Flow name="minecraft-companion">
       <TabNav activeTab={activeTab} onTabChange={setActiveTab} />
       <ActivePage />
-    </AuxiFlow>
+    </Flow>
   )
 }
 

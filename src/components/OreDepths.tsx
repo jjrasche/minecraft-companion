@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { AuxiPage, AuxiComponent, AuxiElement } from '@factoredui/react'
+import { Page, Component, Element } from '@factoredui/react'
 import { ORES } from '../data/ores'
 import styles from '../styles/depth-chart.module.css'
 
@@ -23,11 +23,11 @@ function computeBarWidth(yMin: number, yMax: number): number {
 
 export function OreDepths(): ReactNode {
   return (
-    <AuxiPage name="ore-depths">
+    <Page name="ore-depths">
       <div className="panel">
         <h2>Ore Distribution by Y-Level</h2>
         <p className="sub">Click any ore for details. Diamond zone highlighted.</p>
-        <AuxiComponent name="depth-chart">
+        <Component name="depth-chart">
           <div className={styles.chart}>
             {Y_LABELS.map(y => (
               <div
@@ -54,7 +54,7 @@ export function OreDepths(): ReactNode {
             </div>
 
             {ORES.map(ore => (
-              <AuxiElement key={ore.name} name={`ore-${ore.name.toLowerCase().replace(/\s+/g, '-')}`}>
+              <Element key={ore.name} name={`ore-${ore.name.toLowerCase().replace(/\s+/g, '-')}`}>
                 <div
                   className={styles.oreMarker}
                   style={{ top: yToPixel(ore.yPeak) }}
@@ -68,11 +68,11 @@ export function OreDepths(): ReactNode {
                     {ore.name} (peak Y={ore.yPeak})
                   </span>
                 </div>
-              </AuxiElement>
+              </Element>
             ))}
           </div>
-        </AuxiComponent>
+        </Component>
       </div>
-    </AuxiPage>
+    </Page>
   )
 }

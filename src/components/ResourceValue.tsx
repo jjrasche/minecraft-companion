@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { AuxiPage, AuxiComponent, AuxiElement } from '@factoredui/react'
+import { Page, Component, Element } from '@factoredui/react'
 import { RESOURCES } from '../data/resources'
 import styles from '../styles/value-list.module.css'
 
@@ -27,14 +27,14 @@ export function ResourceValue(): ReactNode {
   }
 
   return (
-    <AuxiPage name="resource-value">
+    <Page name="resource-value">
       <div className="panel">
         <h2>Resource Value (Explorer/Miner)</h2>
         <p className="sub">Click any resource to see notes. Sorted by value score.</p>
-        <AuxiComponent name="value-list">
+        <Component name="value-list">
           <div className={styles.list}>
             {RESOURCES.map((resource, index) => (
-              <AuxiElement key={resource.name} name={`resource-${resource.name.toLowerCase().replace(/\s+/g, '-')}`}>
+              <Element key={resource.name} name={`resource-${resource.name.toLowerCase().replace(/\s+/g, '-')}`}>
                 <div>
                   <div
                     className={styles.item}
@@ -60,13 +60,13 @@ export function ResourceValue(): ReactNode {
                     <div className={styles.note}>{resource.note}</div>
                   )}
                 </div>
-              </AuxiElement>
+              </Element>
             ))}
           </div>
-        </AuxiComponent>
+        </Component>
 
         <h3>Stacking Reference</h3>
-        <AuxiComponent name="stacking-reference">
+        <Component name="stacking-reference">
           <table className={styles.stackTable}>
             <thead>
               <tr><th>Item</th><th>Stack</th><th>Note</th></tr>
@@ -81,8 +81,8 @@ export function ResourceValue(): ReactNode {
               ))}
             </tbody>
           </table>
-        </AuxiComponent>
+        </Component>
       </div>
-    </AuxiPage>
+    </Page>
   )
 }

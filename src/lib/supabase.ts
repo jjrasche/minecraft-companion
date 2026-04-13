@@ -4,8 +4,8 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'http://127.0.0.1:54421
 const supabaseAnonKey =
   import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_placeholder'
 
-// Auxi client — queries auxi schema for behavioral capture
-// This app has no app-level data in Supabase; it's auxi-only
+// factoredui client — queries factoredui schema for behavioral capture
+// This app has no app-level data in Supabase; it's factoredui-only
 export const auxiSupabase = createClient(supabaseUrl, supabaseAnonKey, {
-  db: { schema: 'auxi' as 'public' },
+  db: { schema: 'factoredui' as 'public' },
 })
