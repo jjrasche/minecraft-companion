@@ -1,7 +1,7 @@
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm install --legacy-peer-deps
+RUN npm ci --force
 COPY . .
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
